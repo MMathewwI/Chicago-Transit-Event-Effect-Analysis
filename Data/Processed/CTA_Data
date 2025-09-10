@@ -4,6 +4,9 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from statsmodels.tsa.holtwinters import ExponentialSmoothing
 from scipy.fft import fft, ifft, fftfreq, rfft, rfftfreq
+from statsmodels.tsa.statespace.sarimax import SARIMAX
+from statsmodels.graphics.tsaplots import plot_acf, plot_pacf
+
 #import seaborn as sns 
 #import datetime
 #%%
@@ -15,14 +18,14 @@ Addison_North_Main = Addison_North_Main[Addison_North_Main.index > '2010-01-01']
 Addison_North_Main_Weekend_Holiday = Addison_North_Main[Addison_North_Main['daytype'] == 'U']
 #print(Addison_North_Main_Weekend_Holiday)
 Addison_North_Main_Weekday = Addison_North_Main[Addison_North_Main['daytype'] == 'W']
-
-
 #%%
-plt.scatter(Addison_North_Main['rolling_avg'], Addison_North_Main['rides'], s= 0.4)
-
+print(int(len(Addison_North_Main) * 0.1))
+print(Addison_North_Main['rides'][0:int(len(Addison_North_Main) * 0.5)])
+bruh = Addison_North_Main['rides'][0:int(len(Addison_North_Main) * 0.5)]
 #%%
 plt.figure(figsize=(18, 5))
-Fit_Model = ExponentialSmoothing(Addison_North_Main['rides'], trend="add", seasonal="add", seasonal_periods=385).fit()
+Fit_Model = ExponentialSmoothing(Addison_North_Main['rides'], trend="add", seasonal="mul", seasonal_periods=365).fit()
+
 Addison_North_Main['Fit values'] = Fit_Model.fittedvalues
 Model_forecast = Fit_Model.forecast(1825)
 last_date = Addison_North_Main.index[-1]
@@ -36,7 +39,26 @@ plt.title('Yearly Ridership in Addison-North')
 plt.legend()
 plt.show()
 #%%
-print(Model_forecast.index.size)
+plt.figure(figsize=(18, 5))
+model = SARIMAX(Addison_North_Main['rides'], order= (2,1,2), seasonal_order= (1,1,1,12))  
+model_fit = model.fit()
+#forecast = model_fit.forecast(steps=1825)
+#forecast.index = pd.date_range(start = last_date, periods = 1825)
+
+plt.scatter(Addison_North_Main.index, Addison_North_Main['rides'], color = 'black', s= 0.4, label = 'Original Data')
+plt.plot(Addison_North_Main.index, model_fit.fittedvalues, linestyle="-", label = 'Fitted Line', color = 'red', alpha = 0.3)
+plt.plot(Model_forecast.index, Model_forecast, label = '5 Year Forcecast', alpha = 0.5)
+
+#plt.plot(forecast.index, forecast, label = '5 Year Forcecast', alpha = 0.5)
+
+plt.xlabel('Date (years)')
+plt.ylabel('Rides')
+plt.title('Yearly Ridership in Addison-North')
+plt.legend()
+plt.show()
+
+# %%
+
 #%%
 plt.figure(figsize=(12,5))
 #array = np.asarray(Addison_North_Main['rides'])
