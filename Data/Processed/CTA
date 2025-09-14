@@ -1,0 +1,86 @@
+#%%
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+from statsmodels.tsa.holtwinters import ExponentialSmoothing
+from scipy.fft import fft, ifft, fftfreq, rfft, rfftfreq
+from statsmodels.tsa.statespace.sarimax import SARIMAX
+from statsmodels.graphics.tsaplots import plot_acf, plot_pacf
+
+#import seaborn as sns 
+#import datetime
+#%%
+#Read the CSV Files
+df = pd.read_csv('Data/Raw_CTA/CTA_Data_File.csv', parse_dates=['date'])
+df['rides'] = df['rides'].str.replace(",", "", regex=False).astype(float)
+#Group by the station name and sum up the rides to get a list of biggest to smallest
+station_totals = df.groupby('stationname')['rides'].sum().sort_values(ascending = False)
+
+#Get the top 10, I dont need every single station
+Top_10_Stations = station_totals.head(10)
+#Now mask df to only get where station name is contained in the top 10 stations
+#Then only keep useful columns and put the index as the date
+CTA_Top_10_df = df[df['stationname'].isin(Top_10_Stations.index)][['date', 'stationname', 'rides', 'daytype']].set_index(['date'])
+#Get the data from 2010 and later just because it is too much data
+CTA_Top_10_df = CTA_Top_10_df[CTA_Top_10_df.index >= '2010-01-01'] 
+#%%
+plt.figure(figsize=(18, 5))
+# Ensure the index is a DatetimeIndex
+if not isinstance(Addison_North_Main.index, pd.DatetimeIndex):
+	Addison_North_Main.index = pd.to_datetime(Addison_North_Main.index)
+
+# Use seasonal_order with period 365 for daily data with yearly seasonality
+model = SARIMAX(endog=Addison_North_Main['rides'], order=(2,1,2), seasonal_order=(2,1,2,12))
+model_fit = model.fit(disp=False)
+forecast = model_fit.forecast(steps=1825)
+# Forecast index should start from the next day after the last date
+forecast.index = pd.date_range(start=Addison_North_Main.index[-1] + pd.Timedelta(days=1), periods=1825)
+
+plt.scatter(Addison_North_Main.index, Addison_North_Main['rides'], color='black', s=0.4, label='Original Data')
+plt.plot(Addison_North_Main.index, model_fit.fittedvalues, linestyle="-", label='Fitted Line', color='red', alpha=0.3)
+plt.plot(forecast.index, forecast, label='5 Year Forecast', alpha=0.5)
+
+plt.xlabel('Date (years)')
+plt.ylabel('Rides')
+plt.title('Yearly Ridership in Addison-North')
+plt.legend()
+plt.show()
+
+#%%
+plt.figure(figsize=(12,5))
+#array = np.asarray(Addison_North_Main['rides'])
+array = np.ascontiguousarray(Addison_North_Main['rides'])
+yf = rfft(array)
+xf = rfftfreq(len(array), 1)
+plt.plot(xf, np.abs(yf))
+plt.xlabel('Frequency (Cycles/Day)')
+plt.ylabel('Ampltitude')
+plt.xlim(-0.001,0.01)
+
+#%%
+#Plot every station and the rides
+for station in CTA_Top_10_df['stationname'].unique():
+    #Set up figure
+    plt.figure(figsize=(18,5))
+    binary_mask = CTA_Top_10_df['stationname'] == station
+    #Only fit the station needed
+    Fit_Model = ExponentialSmoothing(CTA_Top_10_df.loc[binary_mask, 'rides'], trend="add", seasonal="add", seasonal_periods=365).fit()
+    #Forecast the Fit 5 years
+    Model_forecast = Fit_Model.forecast(1825)
+    last_date = CTA_Top_10_df.loc[binary_mask, 'rides'][-1]
+    Model_forecast.index = pd.date_range(start = last_date, periods = 1825)
+    last_date = CTA_Top_10_df.loc[binary_mask, 'rides'].index[-1]
+    Model_forecast.index = pd.date_range(start = last_date, periods = 1825)
+    #Plot it all
+    plt.scatter(CTA_Top_10_df.loc[binary_mask].index, CTA_Top_10_df.loc[binary_mask, 'rides'], label = 'Original Data', color = 'black', s= 0.4)
+    plt.plot(CTA_Top_10_df.loc[binary_mask].index, Fit_Model.fittedvalues, linestyle="-", label = 'Fitted Line', color = 'red', alpha = 0.3)
+    plt.plot(Model_forecast.index, Model_forecast, label = '5 Year Forcecast', alpha = 0.5)
+    plt.legend()
+    plt.title('Daily Rides for ' + station + ' (2010+)')
+    plt.ylabel("# of Rides")
+    plt.xlabel('Date (Years)')
+    plt.xticks(rotation=45)
+#plt.legend()
+#plt.title("Daily Rides for Top 10 CTA Stations (2010+)")
+#plt.xlabel("date")
+plt.show()
