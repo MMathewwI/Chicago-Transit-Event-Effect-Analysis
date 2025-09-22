@@ -7,7 +7,7 @@ from Data.Processed.Baseball import Baseball_Table
 from datetime import timedelta
 import numpy as np
 from statsmodels.tsa.statespace.sarimax import SARIMAX
-
+import seaborn as sns
 #%%
 
 CHA_games = Baseball_Table[Baseball_Table['hometeam'] == 'CHA']
@@ -35,8 +35,8 @@ for station in CTA_Top_10_df['stationname'].unique():
     Station_df['whitesocks_percentage_diff'] = (Station_df['whiteavg'] - Station_df['normalavg']) / Station_df['normalavg']
 Station_df = Station_df.set_index('stationname')
 x = np.arange(len(Station_df))
-plt.bar(x - 0.2, Station_df['cubs_percent_diff'], 0.4, label = 'Cubs', color = 'royalblue')
-plt.bar(x + 0.2, Station_df['whitesocks_percentage_diff'], 0.4, label = 'White Socks', color = 'black')
+plt.bar(x - 0.2, Station_df['cubs_percent_diff'], 0.4, label = 'Cubs', color = 'red')
+plt.bar(x + 0.2, Station_df['whitesocks_percentage_diff'], 0.4, label = 'White Socks', color = 'gray')
 plt.xticks(x, Station_df.index, rotation=90)
 plt.title('Percent Difference between Ridership during Normal days and Baseball days')
 plt.ylabel('Percentage Difference')
