@@ -24,4 +24,3 @@ for file in Baseball_files:
 Baseball_Table = pd.concat(list)
 #Set date as index
 Baseball_Table = Baseball_Table.set_index("date")
-print(Baseball_Table)
