@@ -75,41 +75,26 @@ for station in CTA_Top_10_df['stationname'].unique():
 plt.show()
 
 # %%
-d = pd.DataFrame(columns=[date = 'is_baseball_game'])
-print(d)
-#%%
-CTA_Top_10_df['is_cubs_game'] = CTA_Top_10_df.index.isin(cubs_dates).astype(int)
-CTA_Top_10_df['is_whitesox_game'] = CTA_Top_10_df.index.isin(whitesocks_dates).astype(int)
-exog_vars = CTA_Top_10_df[['is_cubs_game', 'is_whitesox_game']]
-model = SARIMAX(
-    CTA_Top_10_df['rides'],
-    order=(2,1,2),
-    seasonal_order=(1,1,1,7),
-    exog=CTA_Top_10_df[['is_cubs_game', 'is_whitesox_game']]
-)
-model_fit = model.fit()
-
-#%%
-import seaborn as sns
-
-effects_df = pd.DataFrame(columns=['station', 'cubs_effect', 'whitesox_effect'])
-
 for station in CTA_Top_10_df['stationname'].unique():
-    station_data = CTA_Top_10_df[CTA_Top_10_df['stationname'] == station]
-    model = SARIMAX(station_data['rides'],order=(2,1,2),seasonal_order=(1,1,1,7), exog=station_data[['is_cubs_game', 'is_whitesox_game']]).fit
-
-#%%
-
-CTA_Top_10_df['is_baseball_game'] = CTA_Top_10_df.index.isin(both_dates).astype(int)
-for station in CTA_Top_10_df['stationname'].unique():
-    plt.figure(figsize=(18, 5))
-    station_data = CTA_Top_10_df[CTA_Top_10_df['stationname'] == station]
-    model = SARIMAX(station_data['rides'], order= (2,1,2), seasonal_order= (1,1,1,7), exog=station_data[['is_baseball_game']])  
+    plt.figure(figsize=(18,5))
+    binary_mask = CTA_Top_10_df['stationname'] == station
+    station_data = CTA_Top_10_df[binary_mask].interpolate(method='linear')
+    station_data['is_cubs_game'] = station_data.index.isin(cubs_dates).astype(int)
+    station_data['is_whitesox_game'] = station_data.index.isin(whitesocks_dates).astype(int)
+    exog = station_data[['is_cubs_game', 'is_whitesox_game']]
+    if (station == 'Chicago/State'):
+        model = SARIMAX(station_data['rides'],order=(1,1,1),seasonal_order=(1,1,1,7),exog=exog)
+    else:
+        model = SARIMAX(station_data['rides'],order=(2,1,2),seasonal_order=(1,1,1,7),exog=exog)
     model_fit = model.fit()
-    future_dates = pd.date_range(start=station_data.index[-1] + pd.Timedelta(days=1), periods=5562)
-    future_exog = pd.DataFrame()
-    forecast = model_fit.forecast(steps=1825, exog = station_data[['is_baseball_game']])
-    forecast.index = pd.date_range(start = last_date, periods = 5562)
+
     plt.scatter(station_data.index, station_data['rides'], color = 'black', s= 0.4, label = 'Original Data')
+    plt.scatter(Cubs_Games.index, Cubs_Games, color = 'lime', s= 0.4, label = 'Cubs Games')
+    plt.scatter(Whitesox_Games.index, Whitesox_Games, color='darkorange', s=0.4, label='White Sox Games')
     plt.plot(station_data.index, model_fit.fittedvalues, linestyle="-", label = 'Fitted Line', color = 'red', alpha = 0.3)
-    plt.plot(forecast.index, forecast, label = '5 Year Forcecast', alpha = 0.5)
+    plt.plot(Model_forecast.index, Model_forecast, label = '5 Year Forcecast', alpha = 0.5)
+    plt.legend()
+    plt.title('Daily Rides for ' + station + ' (2010+)')
+    plt.ylabel("# of Rides")
+    plt.xlabel('Date (Years)')
+    plt.xticks(rotation=90)
